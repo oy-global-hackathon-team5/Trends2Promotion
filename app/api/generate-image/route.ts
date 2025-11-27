@@ -134,23 +134,77 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Set the credentials path
-    const credentialsDir = path.join(process.cwd(), 'app');
-    const files = fs.readdirSync(credentialsDir);
-    const credentialsFile = files.find((file: string) => file.startsWith('global-hackathon') && file.endsWith('.json'));
-    if (!credentialsFile) {
+    // Google Cloud credentials 설정
+    // 환경 변수에서 JSON을 읽거나, 로컬 파일 시스템에서 파일을 찾습니다
+    let credentials: Record<string, unknown> | undefined;
+
+    // 환경 변수에서 JSON을 읽는 경우 (우선순위)
+    const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+
+    if (credentialsJson) {
+      try {
+        // 환경 변수에서 JSON을 파싱
+        credentials = JSON.parse(credentialsJson);
+        console.log('Credentials loaded from environment variable');
+        console.log('Project ID:', credentials?.project_id);
+      } catch (error) {
+        console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error);
+        return NextResponse.json(
+          { error: 'Invalid Google Cloud credentials JSON in environment variable', details: error instanceof Error ? error.message : String(error) },
+          { status: 500 }
+        );
+      }
+    } else {
+      // 로컬 개발 환경: 파일 시스템에서 읽기 (기존 방식)
+      const credentialsDir = path.join(process.cwd(), 'app');
+
+      if (fs.existsSync(credentialsDir)) {
+        const files = fs.readdirSync(credentialsDir);
+        const credentialsFile = files.find((file: string) =>
+          file.startsWith('global-hackathon') && file.endsWith('.json')
+        );
+
+        if (credentialsFile) {
+          const credentialsPath = path.join(credentialsDir, credentialsFile);
+          try {
+            const fileContent = fs.readFileSync(credentialsPath, 'utf-8');
+            credentials = JSON.parse(fileContent);
+            console.log('Credentials loaded from file:', credentialsPath);
+          } catch (error) {
+            console.error('Failed to read credentials file:', error);
+            return NextResponse.json(
+              { error: 'Failed to read credentials file', details: error instanceof Error ? error.message : String(error) },
+              { status: 500 }
+            );
+          }
+        }
+      }
+    }
+
+    // credentials가 없으면 에러 반환
+    if (!credentials) {
       return NextResponse.json(
-        { error: 'Google Cloud credentials file not found' },
+        {
+          error: 'Google Cloud credentials not found',
+          message: 'Set GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable or place credentials file in app directory.'
+        },
         { status: 500 }
       );
     }
-    const credentialsPath = path.join(credentialsDir, credentialsFile);
-    process.env.GOOGLE_APPLICATION_CREDENTIALS = credentialsPath;
 
     // Initialize Vertex AI with your Cloud project and location
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT || (credentials?.project_id as string | undefined) || 'global-hackathon-479205';
+    const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+
+    console.log('Initializing VertexAI with:', { project: projectId, location });
+
+    // VertexAI에 credentials를 직접 전달
     const vertexAI = new VertexAI({
-      project: process.env.GOOGLE_CLOUD_PROJECT || 'your-project-id',
-      location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1',
+      project: projectId,
+      location: location,
+      googleAuthOptions: {
+        credentials: credentials as any,
+      },
     });
 
     const model = 'gemini-2.5-flash-image';
