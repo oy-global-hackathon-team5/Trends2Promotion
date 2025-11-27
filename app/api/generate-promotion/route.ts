@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { saveGeneratedPromotion } from "@/lib/promotions"
+import { getTrendsKeywords } from "@/lib/utils/trends-crawler"
 
 export async function POST(request: Request) {
   try {
@@ -10,11 +11,10 @@ export async function POST(request: Request) {
 
     console.log(`Generate promotion request: country=${country_code}, category=${category}`)
 
-    // TODO 1: Google Trends에서 트렌드 키워드 크롤링
-    //    - pytrends 라이브러리 사용 권장
-    //    - country_code와 category로 필터링
-    //    - 반환값: string[] (예: ['skincare', 'K-beauty', 'serum'])
-    const trendKeywords: string[] = [] // TODO: 실제 크롤링 결과로 교체
+    // Step 1: Google Trends에서 트렌드 키워드 크롤링 ✅
+    console.log('🔍 Fetching trend keywords from Google Trends...')
+    const trendKeywords: string[] = await getTrendsKeywords(country_code, category)
+    console.log(`✅ Found ${trendKeywords.length} trend keywords:`, trendKeywords)
 
     // TODO 2: GenAI로 키워드 분석 및 상품 매핑
     //    - Claude/GPT API를 통해 뷰티 연관성 분석
