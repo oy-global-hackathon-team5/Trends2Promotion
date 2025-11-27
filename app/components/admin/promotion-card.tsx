@@ -7,7 +7,7 @@ interface PromotionCardProps {
     title: string
     description: string
     hero_banner_image_url: string
-    trend_keywords: string[]
+    trend_keywords?: string[]
     created_at: string
   }
   onDelete: () => void
