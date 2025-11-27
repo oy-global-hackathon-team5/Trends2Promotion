@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { getPromotionsByCountry, deletePromotion, type Promotion } from "@/lib/promotions"
+import type { CountryCode } from "@/lib/constants"
 import PromotionCard from "./promotion-card"
 
 interface PromotionListProps {
-  country: string
+  country: CountryCode
 }
 
 export default function PromotionList({ country }: PromotionListProps) {
