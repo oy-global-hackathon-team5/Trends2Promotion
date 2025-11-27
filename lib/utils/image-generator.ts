@@ -1,4 +1,3 @@
-import { AspectRatio } from './../../node_modules/csstype/index.d';
 import { VertexAI, HarmCategory, HarmBlockThreshold, type Part } from '@google-cloud/vertexai';
 import * as fs from 'fs';
 import * as path from 'path';
